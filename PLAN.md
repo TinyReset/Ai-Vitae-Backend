@@ -59,6 +59,7 @@
 - [x] Validated live workflow via MCP (142 nodes)
 - [x] Fixed 15 IF nodes missing `onError: 'continueErrorOutput'` config
 - [x] Confirmed 5 "errors" are false positives from validator
+- [x] Reduced validation warnings from 229 to 214
 
 #### Validator False Positives (No Action Needed)
 | Node | Issue | Reason |
@@ -77,11 +78,29 @@
 | Code nodes need error handling | ~25 | Low | Recommendations only |
 | External services no error handling | ~20 | Low | AI, S3, DB, HTTP nodes |
 
+#### Optional Chaining Fix Strategy
+The `?.` operator is not supported in n8n expressions. Replacements needed:
+- `$json.ctx?.field` → `($json.ctx || {}).field`
+- `$json.array?.[0]` → `($json.array || [])[0]`
+- Nested chains need careful unwrapping
+
+**Key nodes with optional chaining:**
+- Capture Cover Letter, Upload CoverLetter1
+- HTTP Request, HTTP Request2
+- Normalize String, Edit Fields, Build Keys1
+- Capture orderId, Context (carry), Assemble Response
+- Google Docs, Google Docs - Write Content
+- Stash Metadata, Normalize Input, Normalize Payload
+- Add joinKey to DocResult, Stash Context, Build ctx
+- Validate Intake, Respond 202, joinKey1
+- Capture Rewrite1/2/3, Ack Payload, Reattach Context2
+
 ### Next Steps
-- [ ] Address optional chaining warnings (if causing runtime issues)
+- [ ] Fix optional chaining expressions (~50 nodes) via MCP
+- [ ] Re-validate workflow after fixes
 - [ ] Upgrade typeVersions (optional, low risk)
 - [ ] Add error handling to critical external service nodes
-- [ ] Run end-to-end test of workflow
+- [ ] Run end-to-end production test
 
 ---
 
@@ -108,4 +127,4 @@ When starting a new Claude Code session:
 ---
 
 **Last Updated:** 2026-01-17
-**Session:** Initial planning file creation
+**Session:** Batch 2 - Validation & Error Fixes (optional chaining fix in progress)
