@@ -51,10 +51,37 @@
 
 ---
 
-## Batch 2: [TO BE DEFINED]
+## Batch 2: Workflow Validation & Error Fixes (IN PROGRESS)
 
-### Planned Work
-<!-- User to define Batch 2 scope -->
+### Session: 2026-01-17
+
+#### Completed
+- [x] Validated live workflow via MCP (142 nodes)
+- [x] Fixed 15 IF nodes missing `onError: 'continueErrorOutput'` config
+- [x] Confirmed 5 "errors" are false positives from validator
+
+#### Validator False Positives (No Action Needed)
+| Node | Issue | Reason |
+|------|-------|--------|
+| Normalise & Validate | "Cannot return primitive" | Returns `[{json, binary}]` - correct |
+| Sanitize JD | "Cannot return primitive" | Returns `[{json, binary}]` - correct |
+| Guard Node1 | "Cannot return primitive" | Uses runOnceForEachItem mode - correct |
+| Compute Token Cost | "Cannot return primitive" | Returns `items.map()` - correct |
+| CloudConvert | "Unknown node type" | Community node - works fine |
+
+#### Remaining Warnings (214 total)
+| Category | Count | Priority | Notes |
+|----------|-------|----------|-------|
+| Optional chaining `?.` | ~50 | Medium | n8n doesn't support in expressions |
+| Outdated typeVersions | ~31 | Low | Functional, upgrade optional |
+| Code nodes need error handling | ~25 | Low | Recommendations only |
+| External services no error handling | ~20 | Low | AI, S3, DB, HTTP nodes |
+
+### Next Steps
+- [ ] Address optional chaining warnings (if causing runtime issues)
+- [ ] Upgrade typeVersions (optional, low risk)
+- [ ] Add error handling to critical external service nodes
+- [ ] Run end-to-end test of workflow
 
 ---
 
