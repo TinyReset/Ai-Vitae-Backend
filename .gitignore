@@ -1,0 +1,11 @@
+# Claude Code settings
+.claude/
+
+# Chat history (large, personal)
+combined_chat_history.txt
+
+# Temp files
+nul
+
+# PowerShell utility scripts (optional - remove if you want to track these)
+*.ps1
