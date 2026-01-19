@@ -3,17 +3,21 @@
 ## Quick Start for New Sessions
 
 **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
-**Current Status:** All batches complete - Ready for production testing
+**Repositories:**
+- Backend: https://github.com/TinyReset/Ai-Vitae-Backend
+- Frontend: https://github.com/TinyReset/CVBuidler
+**Current Status:** All 6 batches complete - Ready for production testing
 **Nodes:** 144 | **Validation:** 5 errors (false positives), 94 warnings (low-priority)
 
 ### Current State
 - **Database:** Payment tracking & audit logging active (migrations executed 2026-01-19)
 - **Main Workflow:** Updated with payment capture nodes
+- **Frontend:** Updated with payment passthrough (Stripe → n8n)
 - **Supporting Workflows:** All validated and production-ready
 
 ### What's Next
-1. **Production Testing:** Run end-to-end tests (see Pre-Deployment Checklist below)
-2. **Optional:** Verify Stripe webhook includes `payment_intent` field
+1. **Production Testing:** Run end-to-end test with real payment to verify data flows
+2. See Pre-Deployment Checklist below for full test coverage
 
 ### To Verify Audit Logging
 After your next order, run in Supabase SQL Editor:
@@ -37,13 +41,22 @@ n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])
 
 ## Last Session: 2026-01-19
 
-### Session Summary (Batch 5 - Database Security Audit COMPLETE)
-Executed all database migrations and updated workflows for payment tracking.
+### Session Summary (Batch 6 - Stripe Payment Passthrough COMPLETE)
+Implemented end-to-end payment data flow from Stripe through frontend to n8n workflow.
+
+**Batch 5 (Database):**
 - [x] Executed `RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
 - [x] Verified 11 new payment columns in `orders` table
 - [x] Verified 3 triggers created (audit_orders, audit_customer_data, protect_payment_records)
 - [x] Verified `audit_log` table created with RLS
-- [x] Main workflow updated with payment capture nodes (now 144 nodes)
+
+**Batch 6 (Payment Passthrough):**
+- [x] Modified `/api/intake/authorize/route.ts` - extracts payment_intent, customer_id from Stripe
+- [x] Modified `/app/intake/page.tsx` - captures & forwards payment fields
+- [x] Modified `/api/submit/route.ts` - forwards payment fields to n8n
+- [x] Updated n8n "Capture Payment Fields" node - reads from webhook body
+- [x] Updated n8n "Update Payment Fields" node - writes to orders table
+- [x] Frontend changes pushed to GitHub (CVBuidler repo)
 
 ---
 
@@ -163,6 +176,38 @@ Executed all database migrations and updated workflows for payment tracking.
 
 ---
 
+## Batch 6: Stripe Payment Passthrough [COMPLETE]
+
+**Session:** 2026-01-19
+**Status:** Frontend + n8n updated, payment data flows end-to-end
+
+### Problem
+Payment identifiers (`payment_intent`, `customer_id`) were retrieved from Stripe but NOT passed to n8n workflow when user submitted CV.
+
+### Solution
+Implemented frontend passthrough:
+```
+Stripe → /api/intake/authorize → /intake page → /api/submit → n8n → orders table
+```
+
+### Completed Tasks
+- [x] `/api/intake/authorize/route.ts` - Extract payment fields from Stripe session
+- [x] `/app/intake/page.tsx` - Capture payment fields from URL, include in FormData
+- [x] `/api/submit/route.ts` - Forward payment fields to n8n webhook
+- [x] n8n "Capture Payment Fields" node - Extract from `$json.body.payment_intent`
+- [x] n8n "Update Payment Fields" node - Write to orders table
+- [x] Push frontend changes to GitHub
+
+### Payment Data Flow
+| Field | Source | Destination |
+|-------|--------|-------------|
+| `payment_intent` | Stripe session | `orders.stripe_payment_intent_id` |
+| `customer_id` | Stripe session | `orders.stripe_customer_id` |
+| `amount_total` | Stripe session | `orders.payment_amount_cents` |
+| `currency` | Stripe session | `orders.payment_currency` |
+
+---
+
 ## Pre-Deployment Checklist (Main Workflow)
 
 ### Package Tier Tests
@@ -269,5 +314,5 @@ user_id, ip_address, user_agent, workflow_id, occurred_at
 ---
 
 **Last Updated:** 2026-01-19
-**Status:** All batches complete - Ready for production testing
-**Next Action:** Run end-to-end tests with all package tiers and addons
+**Status:** All 6 batches complete - Ready for production testing
+**Next Action:** Run end-to-end test with real payment to verify payment data flows to database

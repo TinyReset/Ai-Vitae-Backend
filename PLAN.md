@@ -4,16 +4,25 @@
 
 **Ai-Vitae** is a CV/resume rewriting service built on n8n with tiered AI processing.
 
+**Repository:** https://github.com/TinyReset/Ai-Vitae-Backend
+
 ### Current Status (as of 2026-01-19)
 - **Main Workflow:** Ai-Vitae Workflow - VALIDATED and production-ready
 - **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
 - **Nodes:** 144 (added payment capture nodes)
-- **Validation:** 5 errors (false positives), 94 warnings (low-priority)
+- **Validation:** 5 errors (false positives), 95 warnings (low-priority)
 - **Batch 1:** Complete - Workflow optimization
 - **Batch 2:** Complete - Validation & error fixes (optional chaining fixed)
 - **Batch 3:** Complete - TypeVersions upgraded, error handling added
 - **Batch 4:** Complete - Supporting workflows validated & fixed
 - **Batch 5:** Complete - Database security audit, migrations executed
+- **Batch 6:** Complete - Stripe payment passthrough (frontend + n8n)
+
+### Repositories
+| Repo | URL | Purpose |
+|------|-----|---------|
+| Backend | https://github.com/TinyReset/Ai-Vitae-Backend | n8n workflow docs, migrations, scripts |
+| Frontend | https://github.com/TinyReset/CVBuidler | Next.js website (Vercel deployed) |
 
 ---
 
@@ -241,6 +250,57 @@
 
 ---
 
+## Batch 6: Stripe Payment Passthrough (COMPLETE)
+
+### Session: 2026-01-19
+
+**Goal:** Ensure Stripe payment identifiers flow from checkout through frontend to n8n workflow for refund support.
+
+#### Problem Identified
+The authorize endpoint (`/api/intake/authorize`) retrieved Stripe session data including `payment_intent` and `customer_id`, but these fields were NOT being passed to the n8n workflow when the user submitted their CV.
+
+#### Solution: Frontend Passthrough (Option A)
+Implemented end-to-end payment data flow:
+
+```
+Stripe Checkout → /api/intake/authorize → /intake page → /api/submit → n8n → orders table
+```
+
+#### Files Modified
+
+**1. `/api/intake/authorize/route.ts`**
+- Extracts `payment_intent`, `customer_id`, `amount_total`, `currency` from Stripe session
+- Passes these as URL parameters in redirect to `/intake`
+
+**2. `/app/intake/page.tsx`**
+- Captures payment fields from URL parameters
+- Includes them in FormData when submitting CV
+
+**3. `/api/submit/route.ts`**
+- Parses payment fields from form data
+- Forwards to n8n webhook
+
+**4. n8n Workflow - "Capture Payment Fields" node**
+- Extracts: `{{ $json.body.payment_intent }}`, `{{ $json.body.customer_id }}`, etc.
+
+**5. n8n Workflow - "Update Payment Fields" node**
+- Writes payment data to `orders` table via Postgres UPDATE
+
+#### Data Flow
+| Stage | Fields Passed |
+|-------|--------------|
+| Stripe → Authorize | `payment_intent`, `customer`, `amount_total`, `currency` |
+| Authorize → Intake | Via URL params: `payment_intent`, `customer_id`, `amount_total`, `currency` |
+| Intake → Submit | Via FormData fields |
+| Submit → n8n | In webhook body |
+| n8n → Database | UPDATE orders SET stripe_payment_intent_id, stripe_customer_id, payment_amount_cents, payment_currency |
+
+#### Commits
+- Frontend: Pushed to `https://github.com/TinyReset/CVBuidler`
+- n8n: Updated via MCP (workflow ID: `40hfyY9Px6peWs3wWFkEY`)
+
+---
+
 ## Remaining Low-Priority Tasks
 
 - [ ] Convert expression formats to resource locator style (main workflow)
@@ -311,13 +371,16 @@ When starting a new Claude Code session:
 - Batch 2: Validation fixes (IF nodes, optional chaining)
 - Batch 3: TypeVersion upgrades (37 nodes), error handling (40+ nodes)
 - Batch 4: Supporting workflows validated & fixed (3 workflows, 17 operations)
-- Batch 5: Database security audit - migrations executed, workflows updated
+- Batch 5: Database security audit - migrations executed, payment columns added
+- Batch 6: Stripe payment passthrough - frontend + n8n updated for end-to-end flow
 
 ### What's Next
-- **Production Testing:** Run end-to-end tests with all package tiers and addons
-- **Optional:** Verify Stripe webhook includes `payment_intent` field (usually default)
+- **Production Testing:** Run end-to-end test with real payment to verify:
+  - Payment data flows from Stripe → Frontend → n8n → Database
+  - Check `orders.stripe_payment_intent_id` is populated after order
+  - Check `audit_log` table captures order changes
 
 ---
 
 **Last Updated:** 2026-01-19
-**Session:** Batch 5 COMPLETE - All migrations executed, payment tracking active
+**Session:** Batch 6 COMPLETE - Payment passthrough implemented (frontend + n8n)
