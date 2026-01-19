@@ -4,15 +4,16 @@
 
 **Ai-Vitae** is a CV/resume rewriting service built on n8n with tiered AI processing.
 
-### Current Status (as of 2026-01-18)
+### Current Status (as of 2026-01-19)
 - **Main Workflow:** Ai-Vitae Workflow - VALIDATED and production-ready
 - **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
-- **Nodes:** 142
+- **Nodes:** 144 (added payment capture nodes)
 - **Validation:** 5 errors (false positives), 94 warnings (low-priority)
 - **Batch 1:** Complete - Workflow optimization
 - **Batch 2:** Complete - Validation & error fixes (optional chaining fixed)
 - **Batch 3:** Complete - TypeVersions upgraded, error handling added
 - **Batch 4:** Complete - Supporting workflows validated & fixed
+- **Batch 5:** Complete - Database security audit, migrations executed
 
 ---
 
@@ -188,52 +189,55 @@
 
 ---
 
-## Batch 5: Database Security Audit [MIGRATIONS READY]
+## Batch 5: Database Security Audit (COMPLETE)
 
-### Session: 2026-01-18
+### Session: 2026-01-18 → 2026-01-19
 
 **Goal:** Audit PostgreSQL database, add payment tracking for refund support, implement security hardening.
 
-#### Supabase MCP Configuration
+#### Supabase Configuration
 - **Project Ref:** `xidmgkcqltvknvtuoeoh`
-- **MCP Server:** Configured but requires OAuth authentication via Supabase dashboard
-- **Config Location:** `C:\Users\gerar\Desktop\Ai-Vitae\Claude.md\.mcp.json`
+- **Dashboard:** https://supabase.com/dashboard/project/xidmgkcqltvknvtuoeoh
 
 #### Phase 1: Schema Discovery [COMPLETE]
-- [x] Created schema discovery workflow in n8n
 - [x] Discovered 5 tables: orders, documents, email_jobs, order_addons, customer_data
 - [x] Verified RLS enabled on all 5 tables
 - [x] Identified 7 PII fields across 3 tables
-- [x] Documented current `orders` table schema (19 columns)
-- [x] Identified missing payment tracking fields for refund support
+- [x] Documented current `orders` table schema (19 columns → now 30 columns)
 
 #### Phase 2: Migration Scripts Created [COMPLETE]
-- [x] `migrations/001_payment_tracking.sql` - 10 payment columns + indexes
+- [x] `migrations/001_payment_tracking.sql` - 11 payment columns + indexes
 - [x] `migrations/002_audit_log.sql` - Audit log table with RLS
 - [x] `migrations/003_audit_triggers.sql` - Triggers for orders & customer_data
 - [x] `migrations/004_retention_policy_update.sql` - Documentation for retention changes
-- [x] `migrations/RUN_ALL_MIGRATIONS.sql` - Combined master migration script
+- [x] `migrations/RUN_ALL_MIGRATIONS_FIXED.sql` - Master migration script (IMMUTABLE fix applied)
 
-#### Phase 3: Workflow Updates [COMPLETE]
+#### Phase 3: Migrations Executed [COMPLETE]
+- [x] **Executed:** `RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
+- [x] **Verified:** 11 new columns added to `orders` table
+- [x] **Verified:** 3 triggers created (audit_orders_trigger, audit_customer_data_trigger, protect_payment_records)
+- [x] **Verified:** `audit_log` table created with RLS
+
+#### Phase 4: Workflow Updates [COMPLETE]
 - [x] Updated Data Retention workflow (hYDSPAe1oNN1Sgrs) via MCP
-  - Now preserves orders with payment records (soft delete via `archived_at`)
-  - Only deletes orders without payment data
+  - Preserves orders with payment records (soft delete via `archived_at`)
   - Includes 1-year audit log retention cleanup
-- [x] Documented main workflow payment logging requirements
-  - See `migrations/005_workflow_payment_logging.md`
+- [x] Updated main workflow (40hfyY9Px6peWs3wWFkEY) via MCP
+  - Added "Capture Payment Fields" node (extracts payment data from webhook)
+  - Added "Update Payment Fields" node (updates orders table with Stripe data)
 
-#### Pending: Manual Steps Required
-- [ ] **RUN MIGRATIONS:** Execute `RUN_ALL_MIGRATIONS.sql` in Supabase SQL Editor
-- [ ] **VERIFY:** Check new columns exist in `orders` table
-- [ ] **UPDATE WEBHOOK:** Ensure Stripe webhook includes `payment_intent` in payload
-- [ ] **UPDATE UPSERT ORDER:** Add payment columns to main workflow SQL (see docs)
+#### Database Changes Applied
+| Change | Details |
+|--------|---------|
+| Payment columns | stripe_payment_intent_id, stripe_charge_id, stripe_customer_id |
+| Status tracking | payment_status, payment_amount_cents, payment_currency, payment_date |
+| Refund tracking | refund_id, refund_date, refund_reason |
+| Soft delete | archived_at |
+| Audit logging | audit_log table with INSERT/UPDATE/DELETE tracking |
+| Protection | Trigger prevents deletion of orders with payment records |
 
-#### Key Findings
-1. **Good:** All tables have RLS enabled
-2. **Good:** `stripe_session_id` already exists
-3. **Gap:** Missing `stripe_payment_intent_id`, `stripe_charge_id` for refunds
-4. **Gap:** No audit logging for sensitive data changes
-5. **Note:** `email_dead_letters` and `workflow_failures` tables don't exist (may need to create)
+#### Remaining Optional Step
+- [ ] **Stripe Webhook:** Verify `payment_intent` and `customer` fields are in payload (usually included by default)
 
 ---
 
@@ -298,8 +302,8 @@ When starting a new Claude Code session:
 
 ### Current State Summary
 - **Main Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
-- **Workflow Status:** Production-ready, validated (94 low-priority warnings)
-- **Database Status:** Migration scripts created, pending execution
+- **Workflow Status:** Production-ready, validated (144 nodes, 94 low-priority warnings)
+- **Database Status:** Migrations executed, payment tracking & audit logging active
 - **Data Retention:** Updated to preserve payment records
 
 ### What's Done
@@ -307,15 +311,13 @@ When starting a new Claude Code session:
 - Batch 2: Validation fixes (IF nodes, optional chaining)
 - Batch 3: TypeVersion upgrades (37 nodes), error handling (40+ nodes)
 - Batch 4: Supporting workflows validated & fixed (3 workflows, 17 operations)
-- Batch 5: Database security audit - migrations created, Data Retention workflow updated
+- Batch 5: Database security audit - migrations executed, workflows updated
 
-### What's Next (Manual Steps)
-1. **Run migrations** in Supabase SQL Editor: `migrations/RUN_ALL_MIGRATIONS.sql`
-2. **Verify columns** created successfully
-3. **Update Stripe webhook** to include `payment_intent` field
-4. **Update main workflow** `Upsert Order` node (see `migrations/005_workflow_payment_logging.md`)
+### What's Next
+- **Production Testing:** Run end-to-end tests with all package tiers and addons
+- **Optional:** Verify Stripe webhook includes `payment_intent` field (usually default)
 
 ---
 
-**Last Updated:** 2026-01-18
-**Session:** Batch 5 COMPLETE - Migrations ready for execution in Supabase
+**Last Updated:** 2026-01-19
+**Session:** Batch 5 COMPLETE - All migrations executed, payment tracking active

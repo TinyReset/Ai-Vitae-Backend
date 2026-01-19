@@ -3,31 +3,23 @@
 ## Quick Start for New Sessions
 
 **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
-**Current Status:** Batch 5 COMPLETE - Migrations ready for manual execution
-**Validation:** 5 errors (false positives), 94 warnings (low-priority)
+**Current Status:** All batches complete - Ready for production testing
+**Nodes:** 144 | **Validation:** 5 errors (false positives), 94 warnings (low-priority)
 
-### ⚠️ ACTION REQUIRED: Run Database Migrations
+### Current State
+- **Database:** Payment tracking & audit logging active (migrations executed 2026-01-19)
+- **Main Workflow:** Updated with payment capture nodes
+- **Supporting Workflows:** All validated and production-ready
 
-**Migration scripts are ready.** Execute them in Supabase SQL Editor:
+### What's Next
+1. **Production Testing:** Run end-to-end tests (see Pre-Deployment Checklist below)
+2. **Optional:** Verify Stripe webhook includes `payment_intent` field
 
-**URL:** https://supabase.com/dashboard/project/xidmgkcqltvknvtuoeoh/sql
-
-**Steps:**
-1. Open `migrations/RUN_ALL_MIGRATIONS.sql`
-2. Copy contents to Supabase SQL Editor
-3. Click "Run"
-4. Verify output shows new columns and triggers
-
-### What's Been Done This Session
-- [x] Created 5 migration scripts for payment tracking & audit logging
-- [x] Updated Data Retention workflow to preserve payment records
-- [x] Documented main workflow update requirements
-
-### What's Next (Manual Steps)
-1. **Run migrations** in Supabase SQL Editor
-2. **Update Stripe webhook** to include `payment_intent` in payload
-3. **Update main workflow** - Add payment columns to `Upsert Order` node
-   - See: `migrations/005_workflow_payment_logging.md`
+### To Verify Audit Logging
+After your next order, run in Supabase SQL Editor:
+```sql
+SELECT * FROM public.audit_log ORDER BY occurred_at DESC LIMIT 5;
+```
 
 ### Key Commands
 ```
@@ -43,14 +35,15 @@ n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])
 
 ---
 
-## Last Session: 2026-01-18
+## Last Session: 2026-01-19
 
-### Session Summary (Batch 5 - Database Security Audit)
-Created comprehensive database migration scripts and updated Data Retention workflow.
-- Created 5 migration scripts for payment tracking & audit logging
-- Updated Data Retention workflow via MCP to preserve payment records
-- Documented requirements for main workflow payment logging
-- Supabase MCP requires OAuth (manual SQL execution needed)
+### Session Summary (Batch 5 - Database Security Audit COMPLETE)
+Executed all database migrations and updated workflows for payment tracking.
+- [x] Executed `RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
+- [x] Verified 11 new payment columns in `orders` table
+- [x] Verified 3 triggers created (audit_orders, audit_customer_data, protect_payment_records)
+- [x] Verified `audit_log` table created with RLS
+- [x] Main workflow updated with payment capture nodes (now 144 nodes)
 
 ---
 
@@ -95,7 +88,7 @@ Created comprehensive database migration scripts and updated Data Retention work
 
 ---
 
-## Batch 3: Optional Improvements [IN PROGRESS]
+## Batch 3: Optional Improvements [COMPLETE]
 
 ### TypeVersion Upgrades [COMPLETE]
 - [x] Upgrade IF nodes from 2.2 → 2.3 (13 nodes)
@@ -120,57 +113,53 @@ Created comprehensive database migration scripts and updated Data Retention work
 
 ---
 
-## Batch 5: Database Security Audit [MIGRATIONS READY]
+## Batch 5: Database Security Audit [COMPLETE]
 
-**Session:** 2026-01-18
+**Session:** 2026-01-18 → 2026-01-19
 **Supabase Project:** `xidmgkcqltvknvtuoeoh`
-**Status:** Migration scripts created, pending manual execution
+**Status:** All migrations executed, payment tracking active
 
 ### Phase 1: Schema Discovery [COMPLETE]
 
 **Tables Found (5):**
 | Table | RLS Enabled | Columns | Purpose |
 |-------|-------------|---------|---------|
-| `orders` | ✅ Yes | 19 | Main order records |
+| `orders` | ✅ Yes | 30 (was 19) | Main order records + payment tracking |
 | `documents` | ✅ Yes | 5 | Generated CV/cover letter storage keys |
 | `email_jobs` | ✅ Yes | 13 | Email delivery queue |
 | `order_addons` | ✅ Yes | 5 | Add-on purchases |
 | `customer_data` | ✅ Yes | 13 | Customer contact information |
+| `audit_log` | ✅ Yes | 12 | **NEW** - Audit trail for sensitive data |
 
-### Phase 2: PII Identification [COMPLETE]
+### Phase 2: Migrations Executed [COMPLETE]
 
-**PII Fields Found (7):**
-- `orders.email`, `orders.customer_email`, `orders.candidate_name`
-- `customer_data.email`, `customer_data.full_name`, `customer_data.phone`
-- `email_jobs.recipient`
+**New Columns in `orders` table (11):**
+- `stripe_payment_intent_id`, `stripe_charge_id`, `stripe_customer_id`
+- `payment_status`, `payment_amount_cents`, `payment_currency`, `payment_date`
+- `refund_id`, `refund_date`, `refund_reason`
+- `archived_at`
 
-**Note:** Supabase provides encryption at rest. Column-level encryption is optional.
+**New Triggers (3):**
+- `audit_orders_trigger` - Logs INSERT/UPDATE/DELETE on orders
+- `audit_customer_data_trigger` - Logs INSERT/UPDATE/DELETE on customer_data
+- `protect_payment_records` - Prevents deletion of orders with payment data
 
-### Phase 3: Migration Scripts [COMPLETE]
-
-**Files Created:**
-| File | Description |
-|------|-------------|
-| `migrations/001_payment_tracking.sql` | 10 payment columns + indexes |
-| `migrations/002_audit_log.sql` | Audit log table with RLS |
-| `migrations/003_audit_triggers.sql` | Triggers for orders & customer_data |
-| `migrations/004_retention_policy_update.sql` | Retention policy docs |
-| `migrations/005_workflow_payment_logging.md` | Workflow update guide |
-| `migrations/RUN_ALL_MIGRATIONS.sql` | **Master script - run this** |
-
-### Phase 4: Workflow Updates [COMPLETE]
+### Phase 3: Workflow Updates [COMPLETE]
 
 - [x] Data Retention workflow updated via MCP (preserves payment records)
-- [x] Main workflow update documented (requires manual implementation)
+- [x] Main workflow updated via MCP (added payment capture nodes)
 
 ### Verification Checklist
 
 - [x] All PII fields identified and documented
 - [x] RLS enabled on all tables
 - [x] Migration scripts created
+- [x] Migrations executed in Supabase
+- [x] 11 new columns verified in `orders` table
+- [x] 3 triggers verified active
+- [x] `audit_log` table created
 - [x] Data Retention workflow preserves payment records
-- [ ] **PENDING:** Run migrations in Supabase
-- [ ] **PENDING:** Update main workflow `Upsert Order` node
+- [x] Main workflow captures payment fields
 
 ---
 
@@ -233,14 +222,20 @@ Created comprehensive database migration scripts and updated Data Retention work
 
 ---
 
-## Database Schema Reference (from discovery)
+## Database Schema Reference (updated 2026-01-19)
 
-### orders (19 columns)
+### orders (30 columns)
 ```
+-- Original (19)
 id, created_at, updated_at, status, package, addons, candidate_name, email,
 priority, source, ext_id, has_linkedin, has_extra_cover_letter,
 needs_editable_word, is_one_day_delivery, sla_due_at, stripe_session_id,
 completed_at, customer_email
+
+-- Payment tracking (11 new)
+stripe_payment_intent_id, stripe_charge_id, stripe_customer_id,
+payment_status, payment_amount_cents, payment_currency, payment_date,
+refund_id, refund_date, refund_reason, archived_at
 ```
 
 ### customer_data (13 columns)
@@ -265,8 +260,14 @@ id, order_id, kind, storage_key, created_at
 order_id, code, price_cents, selected, created_at
 ```
 
+### audit_log (12 columns) - NEW
+```
+id, table_name, record_id, action, old_values, new_values, changed_fields,
+user_id, ip_address, user_agent, workflow_id, occurred_at
+```
+
 ---
 
-**Last Updated:** 2026-01-18
-**Status:** Batch 5 COMPLETE - Migrations ready, awaiting manual execution
-**Next Action:** Run `migrations/RUN_ALL_MIGRATIONS.sql` in Supabase SQL Editor
+**Last Updated:** 2026-01-19
+**Status:** All batches complete - Ready for production testing
+**Next Action:** Run end-to-end tests with all package tiers and addons
