@@ -275,7 +275,13 @@ When starting a new Claude Code session:
 ### Quick Start
 1. Read `PLAN.md` (this file) for project context and current status
 2. Read `TODO.md` for actionable tasks and checklists
-3. **For Database:** Run `migrations/RUN_ALL_MIGRATIONS.sql` in Supabase SQL Editor
+3. **For Database:** Run `migrations/RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
+
+### ⚠️ IMPORTANT: Workflow Source of Truth
+- **DO NOT** use any local JSON workflow files - they are outdated
+- The **ONLY** valid workflow is the live n8n workflow (ID: `40hfyY9Px6peWs3wWFkEY`)
+- **ALL** workflow changes must be made via MCP connection to n8n cloud
+- Use `n8n_get_workflow` to read current state, `n8n_update_partial_workflow` to modify
 
 ### MCP Tools Available
 
