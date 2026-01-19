@@ -188,6 +188,55 @@
 
 ---
 
+## Batch 5: Database Security Audit [MIGRATIONS READY]
+
+### Session: 2026-01-18
+
+**Goal:** Audit PostgreSQL database, add payment tracking for refund support, implement security hardening.
+
+#### Supabase MCP Configuration
+- **Project Ref:** `xidmgkcqltvknvtuoeoh`
+- **MCP Server:** Configured but requires OAuth authentication via Supabase dashboard
+- **Config Location:** `C:\Users\gerar\Desktop\Ai-Vitae\Claude.md\.mcp.json`
+
+#### Phase 1: Schema Discovery [COMPLETE]
+- [x] Created schema discovery workflow in n8n
+- [x] Discovered 5 tables: orders, documents, email_jobs, order_addons, customer_data
+- [x] Verified RLS enabled on all 5 tables
+- [x] Identified 7 PII fields across 3 tables
+- [x] Documented current `orders` table schema (19 columns)
+- [x] Identified missing payment tracking fields for refund support
+
+#### Phase 2: Migration Scripts Created [COMPLETE]
+- [x] `migrations/001_payment_tracking.sql` - 10 payment columns + indexes
+- [x] `migrations/002_audit_log.sql` - Audit log table with RLS
+- [x] `migrations/003_audit_triggers.sql` - Triggers for orders & customer_data
+- [x] `migrations/004_retention_policy_update.sql` - Documentation for retention changes
+- [x] `migrations/RUN_ALL_MIGRATIONS.sql` - Combined master migration script
+
+#### Phase 3: Workflow Updates [COMPLETE]
+- [x] Updated Data Retention workflow (hYDSPAe1oNN1Sgrs) via MCP
+  - Now preserves orders with payment records (soft delete via `archived_at`)
+  - Only deletes orders without payment data
+  - Includes 1-year audit log retention cleanup
+- [x] Documented main workflow payment logging requirements
+  - See `migrations/005_workflow_payment_logging.md`
+
+#### Pending: Manual Steps Required
+- [ ] **RUN MIGRATIONS:** Execute `RUN_ALL_MIGRATIONS.sql` in Supabase SQL Editor
+- [ ] **VERIFY:** Check new columns exist in `orders` table
+- [ ] **UPDATE WEBHOOK:** Ensure Stripe webhook includes `payment_intent` in payload
+- [ ] **UPDATE UPSERT ORDER:** Add payment columns to main workflow SQL (see docs)
+
+#### Key Findings
+1. **Good:** All tables have RLS enabled
+2. **Good:** `stripe_session_id` already exists
+3. **Gap:** Missing `stripe_payment_intent_id`, `stripe_charge_id` for refunds
+4. **Gap:** No audit logging for sensitive data changes
+5. **Note:** `email_dead_letters` and `workflow_failures` tables don't exist (may need to create)
+
+---
+
 ## Remaining Low-Priority Tasks
 
 - [ ] Convert expression formats to resource locator style (main workflow)
@@ -211,9 +260,11 @@
 | `VALIDATION_REPORT.md` | Complete validation documentation |
 | `OPTIMIZATION_SUMMARY.md` | Optimization details and testing checklist |
 | `fix_chaining.py` | Python script for optional chaining fixes |
-| `mcp_fix_operations.json` | All 17 MCP update operations for optional chaining |
-| `set_node_ops.json` | 9 Set node MCP operations |
-| `other_node_ops_fixed.json` | 8 other node MCP operations |
+| `migrations/RUN_ALL_MIGRATIONS.sql` | **Master migration script - run in Supabase** |
+| `migrations/001_payment_tracking.sql` | Payment tracking columns |
+| `migrations/002_audit_log.sql` | Audit log table |
+| `migrations/003_audit_triggers.sql` | Audit triggers |
+| `migrations/005_workflow_payment_logging.md` | Main workflow update guide |
 
 ---
 
@@ -224,34 +275,41 @@ When starting a new Claude Code session:
 ### Quick Start
 1. Read `PLAN.md` (this file) for project context and current status
 2. Read `TODO.md` for actionable tasks and checklists
-3. Check workflow state: `n8n_get_workflow` with ID `40hfyY9Px6peWs3wWFkEY`
+3. **For Database:** Run `migrations/RUN_ALL_MIGRATIONS.sql` in Supabase SQL Editor
 
 ### MCP Tools Available
+
+**n8n MCP (workflow management):**
 - `n8n_list_workflows` - List all workflows
 - `n8n_get_workflow` - Get workflow details (use mode='structure' for node list)
 - `n8n_validate_workflow` - Validate workflow (use profile='runtime')
 - `n8n_update_partial_workflow` - Apply incremental changes
-- `search_nodes` - Find n8n node documentation
-- `get_node` - Get node schema and properties
+
+**Supabase MCP (database access):**
+- Requires OAuth authentication via Supabase dashboard
+- Alternative: Run SQL directly in Supabase SQL Editor
+- Project ref: `xidmgkcqltvknvtuoeoh`
 
 ### Current State Summary
-- **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
-- **Status:** Production-ready, validated
-- **Errors:** 5 (all false positives - see table above)
-- **Warnings:** 94 (all low-priority optional improvements)
-- **Last Validated:** 2026-01-18
+- **Main Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
+- **Workflow Status:** Production-ready, validated (94 low-priority warnings)
+- **Database Status:** Migration scripts created, pending execution
+- **Data Retention:** Updated to preserve payment records
 
 ### What's Done
 - Batch 1: Workflow optimization (15 nodes removed)
 - Batch 2: Validation fixes (IF nodes, optional chaining)
 - Batch 3: TypeVersion upgrades (37 nodes), error handling (40+ nodes)
 - Batch 4: Supporting workflows validated & fixed (3 workflows, 17 operations)
+- Batch 5: Database security audit - migrations created, Data Retention workflow updated
 
-### What's Next (Optional)
-- Expression formats, sub-workflows (low priority)
-- Production testing
+### What's Next (Manual Steps)
+1. **Run migrations** in Supabase SQL Editor: `migrations/RUN_ALL_MIGRATIONS.sql`
+2. **Verify columns** created successfully
+3. **Update Stripe webhook** to include `payment_intent` field
+4. **Update main workflow** `Upsert Order` node (see `migrations/005_workflow_payment_logging.md`)
 
 ---
 
 **Last Updated:** 2026-01-18
-**Session:** All batches COMPLETE - Main workflow and 3 supporting workflows validated and production-ready
+**Session:** Batch 5 COMPLETE - Migrations ready for execution in Supabase
