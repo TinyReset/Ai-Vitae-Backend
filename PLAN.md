@@ -10,13 +10,14 @@
 - **Main Workflow:** Ai-Vitae Workflow - VALIDATED and production-ready
 - **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
 - **Nodes:** 144 (added payment capture nodes)
-- **Validation:** 5 errors (false positives), 95 warnings (low-priority)
+- **Validation:** 5 errors (false positives), 94 warnings (low-priority)
 - **Batch 1:** Complete - Workflow optimization
 - **Batch 2:** Complete - Validation & error fixes (optional chaining fixed)
 - **Batch 3:** Complete - TypeVersions upgraded, error handling added
 - **Batch 4:** Complete - Supporting workflows validated & fixed
 - **Batch 5:** Complete - Database security audit, migrations executed
 - **Batch 6:** Complete - Stripe payment passthrough (frontend + n8n)
+- **Batch 7:** Complete - P&L token cost fix + addon pricing enabled
 
 ### Repositories
 | Repo | URL | Purpose |
@@ -301,6 +302,55 @@ Stripe Checkout → /api/intake/authorize → /intake page → /api/submit → n
 
 ---
 
+## Batch 7: P&L Fixes & Addon Pricing (COMPLETE)
+
+### Session: 2026-01-19
+
+**Goal:** Fix Google Sheets P&L token cost calculation and enable addon pricing in Stripe checkout.
+
+#### Issues Identified
+
+**1. Token Cost Node Bug (CRITICAL)**
+The `Compute Token Cost` node referenced wrong node names:
+- `'Message a model3'` → should be `'Premium - CV Rewrite (Claude Sonnet)'`
+- `'Message a model11'` → should be `'Executive - CV Rewrite (Claude Opus)'`
+
+**Impact:** Premium and Executive orders showed `token_cost_eur = 0` in P&L.
+
+**2. Addon Pricing Disabled**
+Addon prices were commented out in `/api/checkout/sessions/route.ts`:
+```javascript
+// extracoverletter: 299,  // Was commented out
+// oneday: 399,
+// editableword: 499,
+// linkedin: 1000,
+```
+
+**Impact:** Users saw addon prices but were not charged.
+
+#### Fixes Applied
+
+**1. Token Cost Node (via MCP)**
+- Updated `Compute Token Cost` node with correct node names
+- Added all AI nodes to STEPS array for comprehensive cost tracking:
+  - Starter: `Rewrite CV`, `Starter - Proofread CV`
+  - Standard: `Rewrite CV1`, `Standard - Proofread CV`
+  - Premium: `Premium - CV Rewrite (Claude Sonnet)`
+  - Executive: `Executive - CV Rewrite (Claude Opus)`, `Executive - Format CV Layout`
+  - Cover Letters: `Cover Letter - Generate`, `Cover Letter Rewrite`, `Cover Letter Rewrite1`, `Cover Letter Rewrite2`
+  - LinkedIn: `LI Build Sections1`
+
+**2. Addon Pricing (Frontend)**
+- Enabled addon prices in `/api/checkout/sessions/route.ts`:
+  - Extra Cover Letter: €2.99
+  - One-Day Delivery: €3.99
+  - Editable Word File: €4.99
+  - LinkedIn Optimization: €10.00
+- Added `formatAddonName()` helper for clean Stripe line item names
+- Added filter to exclude unknown addons with 0 price
+
+---
+
 ## Remaining Low-Priority Tasks
 
 - [ ] Convert expression formats to resource locator style (main workflow)
@@ -373,14 +423,17 @@ When starting a new Claude Code session:
 - Batch 4: Supporting workflows validated & fixed (3 workflows, 17 operations)
 - Batch 5: Database security audit - migrations executed, payment columns added
 - Batch 6: Stripe payment passthrough - frontend + n8n updated for end-to-end flow
+- Batch 7: P&L token cost fix + addon pricing enabled
 
 ### What's Next
 - **Production Testing:** Run end-to-end test with real payment to verify:
   - Payment data flows from Stripe → Frontend → n8n → Database
+  - Token costs calculated correctly for Premium/Executive tiers
+  - Addon prices charged in Stripe checkout
   - Check `orders.stripe_payment_intent_id` is populated after order
   - Check `audit_log` table captures order changes
 
 ---
 
 **Last Updated:** 2026-01-19
-**Session:** Batch 6 COMPLETE - Payment passthrough implemented (frontend + n8n)
+**Session:** Batch 7 COMPLETE - P&L token cost fix + addon pricing enabled

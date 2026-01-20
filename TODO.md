@@ -6,7 +6,7 @@
 **Repositories:**
 - Backend: https://github.com/TinyReset/Ai-Vitae-Backend
 - Frontend: https://github.com/TinyReset/CVBuidler
-**Current Status:** All 6 batches complete - Ready for production testing
+**Current Status:** All 7 batches complete - Ready for production testing
 **Nodes:** 144 | **Validation:** 5 errors (false positives), 94 warnings (low-priority)
 
 ### Current State
@@ -39,10 +39,16 @@ n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])
 
 ---
 
-## Last Session: 2026-01-19
+## Last Session: 2026-01-20
 
-### Session Summary (Batch 6 - Stripe Payment Passthrough COMPLETE)
-Implemented end-to-end payment data flow from Stripe through frontend to n8n workflow.
+### Session Summary (Batch 7 - P&L Integration & Addon Pricing COMPLETE)
+Fixed Google Sheets P&L token cost tracking and enabled frontend addon pricing.
+
+**Batch 7 (P&L & Pricing):**
+- [x] Fixed `Compute Token Cost` node - corrected Premium/Executive node names via MCP
+- [x] Enabled addon pricing in `/api/checkout/sessions/route.ts`
+- [x] Added addon line items to Stripe checkout
+- [x] Updated PLAN.md and TODO.md with Batch 7 documentation
 
 **Batch 5 (Database):**
 - [x] Executed `RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
@@ -208,6 +214,46 @@ Stripe → /api/intake/authorize → /intake page → /api/submit → n8n → or
 
 ---
 
+## Batch 7: P&L Integration & Addon Pricing [COMPLETE]
+
+**Session:** 2026-01-20
+**Status:** Token cost tracking fixed, addon pricing enabled
+
+### Issues Found
+1. **Compute Token Cost node** referenced wrong node names for Premium/Executive tiers
+   - `'Message a model3'` → should be `'Premium - CV Rewrite (Claude Sonnet)'`
+   - `'Message a model11'` → should be `'Executive - CV Rewrite (Claude Opus)'`
+2. **Addon pricing** was commented out in frontend - users saw prices but weren't charged
+
+### Fixes Applied
+
+**n8n Workflow (via MCP):**
+- [x] Fixed `Compute Token Cost` STEPS array with correct node names:
+  - Starter: `'Rewrite CV'`, `'Starter - Proofread CV'`
+  - Standard: `'Rewrite CV1'`, `'Standard - Proofread CV'`
+  - Premium: `'Premium - CV Rewrite (Claude Sonnet)'`
+  - Executive: `'Executive - CV Rewrite (Claude Opus)'`, `'Executive - Format CV Layout'`
+  - Cover letters: `'Generate Cover Letter'`, `'Generate Cover Letter1'`, etc.
+  - LinkedIn: `'Generate LinkedIn Suggestions'`
+
+**Frontend (`/api/checkout/sessions/route.ts`):**
+- [x] Enabled addon prices:
+  - `extracoverletter`: €2.99 (299 cents)
+  - `oneday`: €3.99 (399 cents)
+  - `editableword`: €4.99 (499 cents)
+  - `linkedin`: €10.00 (1000 cents)
+- [x] Added `ADDON_NAMES` map for clean display names
+- [x] Added `formatAddonName()` helper function
+- [x] Updated `line_items` to include addon line items in Stripe checkout
+
+### Verification
+After next order with addons, verify:
+1. Google Sheets P&L shows non-zero `token_cost_usd` for Premium/Executive
+2. Stripe checkout total includes addon prices
+3. Customer sees itemized addons on Stripe checkout page
+
+---
+
 ## Pre-Deployment Checklist (Main Workflow)
 
 ### Package Tier Tests
@@ -313,6 +359,6 @@ user_id, ip_address, user_agent, workflow_id, occurred_at
 
 ---
 
-**Last Updated:** 2026-01-19
-**Status:** All 6 batches complete - Ready for production testing
-**Next Action:** Run end-to-end test with real payment to verify payment data flows to database
+**Last Updated:** 2026-01-20
+**Status:** All 7 batches complete - Ready for production testing
+**Next Action:** Run end-to-end test with addons to verify P&L token cost and addon pricing
