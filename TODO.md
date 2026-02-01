@@ -1,34 +1,55 @@
 # Ai-Vitae TODO List
 
+## ⚠️ CRITICAL: Workflow Source of Truth
+
+**NEVER use local JSON workflow files - they are OUTDATED.**
+- The **ONLY** valid workflow is the live n8n workflow via MCP connection
+- **ALL** workflow reads: `n8n_get_workflow(id="40hfyY9Px6peWs3wWFkEY", mode="structure")`
+- **ALL** workflow changes: `n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])`
+- Local `.json` files are snapshots for reference only - DO NOT modify or rely on them
+
+---
+
 ## Quick Start for New Sessions
 
 **Workflow ID:** `40hfyY9Px6peWs3wWFkEY`
 **Repositories:**
 - Backend: https://github.com/TinyReset/Ai-Vitae-Backend
 - Frontend: https://github.com/TinyReset/CVBuidler
-**Current Status:** All 7 batches complete - Ready for production testing
-**Nodes:** 144 | **Validation:** 5 errors (false positives), 94 warnings (low-priority)
+**Current Status:** Batch 16 COMPLETE - ALL 4 tiers PASSED, Email Delivery FIXED (11 fixes total)
+**Nodes:** 145
 
 ### Current State
-- **Database:** Payment tracking & audit logging active (migrations executed 2026-01-19)
-- **Main Workflow:** Updated with payment capture nodes
-- **Frontend:** Updated with payment passthrough (Stripe → n8n)
+- **Database:** Payment tracking & audit logging active
+- **Main Workflow:** Response time ~10ms (optimized), multiple nodes disabled
+- **Frontend:** Fixed and deployed
 - **Supporting Workflows:** All validated and production-ready
+- **Supabase Storage:** Configured with credentials (xidmgkcqltvknvtuoeoh.supabase.co)
+- **CV PDF Document:** ✅ Rewritten CV text flows to Google Docs via Stash Context + $node reference (Batch 16)
+- **Cover Letter Document:** ✅ Included cover letters create PDF, upload to S3, merge into response (Batch 15)
+- **Email Delivery:** ✅ "If Email Sent Ok" fixed — routes to Mark Sent, status updated to "sent" (Batch 16)
+- **Premium Pipeline:** ✅ PASSED - execution #2827 (104 nodes, 167s)
+- **Standard Pipeline:** ✅ PASSED - execution #2835 (103 nodes, 148s, CV + CL + Email + Mark Sent)
+- **Executive Pipeline:** ✅ PASSED - execution #2837 (91 nodes, 195s, CV + CL + Layout + Priority + Email)
+- **Starter Pipeline:** ✅ PASSED - execution #2842 (91 nodes, 148s, CV only + Email)
 
-### What's Next
-1. **Production Testing:** Run end-to-end test with real payment to verify data flows
-2. See Pre-Deployment Checklist below for full test coverage
-
-### To Verify Audit Logging
-After your next order, run in Supabase SQL Editor:
-```sql
-SELECT * FROM public.audit_log ORDER BY occurred_at DESC LIMIT 5;
-```
+### What's Next (Post Batch 16)
+1. ~~TEST STANDARD ORDER~~ ✅ PASSED (execution #2835, 5 iterations)
+2. ~~FIX EMAIL "If Email Sent Ok"~~ ✅ FIXED (execution #2836, first successful delivery)
+3. ~~TEST EXECUTIVE ORDER~~ ✅ PASSED (execution #2837, zero fixes needed)
+4. ~~TEST STARTER ORDER~~ ✅ PASSED (execution #2842, required Capture Rewrite Responses API fix)
+5. **524 CLOUDFLARE TIMEOUT** - Use "Respond to Webhook" node for async pattern
+6. **ADDON TESTING** - Extra Cover Letter, LinkedIn Optimization, Editable Word, One Day Delivery
+7. **FUTURE:** Re-enable Rate Limiter & Idempotency Check after Respond 202
+8. **FUTURE:** Investigate frontend confirmation page slowness (not n8n - webhook responds in ~10ms)
 
 ### Key Commands
 ```
-# Validate workflow
-n8n_validate_workflow(id="40hfyY9Px6peWs3wWFkEY", options={profile: "runtime"})
+# Check recent executions
+n8n_executions(action="list", workflowId="40hfyY9Px6peWs3wWFkEY", limit=5)
+
+# Check execution errors
+n8n_executions(action="get", id="EXECUTION_ID", mode="error")
 
 # Get workflow structure
 n8n_get_workflow(id="40hfyY9Px6peWs3wWFkEY", mode="structure")
@@ -39,30 +60,263 @@ n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])
 
 ---
 
-## Last Session: 2026-01-20
+## Last Session: 2026-02-01 (Session 9)
 
-### Session Summary (Batch 7 - P&L Integration & Addon Pricing COMPLETE)
-Fixed Google Sheets P&L token cost tracking and enabled frontend addon pricing.
+### Session Summary (Batch 16 COMPLETE - ALL 4 Tiers PASSED)
+Continued cross-tier testing from Session 8. Executive tier passed on first test (#2837, zero fixes needed). Starter tier failed initially (#2839 — Capture Rewrite extracted cvRewriteText using old Chat Completions format, empty result). Fixed Capture Rewrite to use Responses API format. Re-test #2842 passed. All 4 tiers now verified end-to-end with email delivery.
 
-**Batch 7 (P&L & Pricing):**
-- [x] Fixed `Compute Token Cost` node - corrected Premium/Executive node names via MCP
-- [x] Enabled addon pricing in `/api/checkout/sessions/route.ts`
-- [x] Added addon line items to Stripe checkout
-- [x] Updated PLAN.md and TODO.md with Batch 7 documentation
+**Completed This Session:**
+- [x] Executive tier tested and PASSED — execution #2837 (91 nodes, 195s, CV + CL + Layout + Priority + Email)
+- [x] Starter tier tested and PASSED — execution #2842 (91 nodes, 148s, CV only, no cover letter ✅, Email ✅)
+- [x] Fixed Capture Rewrite (Starter) — was using `$json.choices[0].message.content` (Chat Completions), updated to `$json.output[0].content[0].text` (Responses API)
+- [x] 11 total fixes this batch (8 main + 3 email delivery)
+- [x] Updated PLAN.md and TODO.md
 
-**Batch 5 (Database):**
-- [x] Executed `RUN_ALL_MIGRATIONS_FIXED.sql` in Supabase SQL Editor
-- [x] Verified 11 new payment columns in `orders` table
-- [x] Verified 3 triggers created (audit_orders, audit_customer_data, protect_payment_records)
-- [x] Verified `audit_log` table created with RLS
+**Completed in Session 8 (2026-01-31):**
+- [x] Standard tier tested and PASSED — execution #2835 (103 nodes, 148s, CV + CL + Email)
+- [x] CV PDF populated with rewritten content (Stash Context + Write Content fixes)
+- [x] Email Delivery "If Email Sent Ok" fixed — execution #2836, Mark Sent status="sent"
 
-**Batch 6 (Payment Passthrough):**
-- [x] Modified `/api/intake/authorize/route.ts` - extracts payment_intent, customer_id from Stripe
-- [x] Modified `/app/intake/page.tsx` - captures & forwards payment fields
-- [x] Modified `/api/submit/route.ts` - forwards payment fields to n8n
-- [x] Updated n8n "Capture Payment Fields" node - reads from webhook body
-- [x] Updated n8n "Update Payment Fields" node - writes to orders table
-- [x] Frontend changes pushed to GitHub (CVBuidler repo)
+**Still Pending:**
+- [ ] 524 Cloudflare timeout — use "Respond to Webhook" node for async pattern
+- [ ] Addon testing (Extra Cover Letter, LinkedIn, Editable Word, One Day Delivery)
+- [ ] Investigate frontend confirmation page slowness (not n8n — webhook responds in ~10ms)
+
+### Latest Test Results
+| Execution | Tier | Status | Notes |
+|-----------|------|--------|-------|
+| **2843** | **Email** | **SUCCESS** | **Starter email delivery ✅** |
+| **2842** | **Starter** | **SUCCESS** | **CV only, no cover letter (correct), email delivered. 91 nodes, 148s** |
+| 2841 | Starter | CRASHED | n8n cloud crash (0 nodes executed, platform issue) |
+| 2839 | Starter | PARTIAL | Capture Rewrite cvRewriteText empty (old Chat Completions format) |
+| **2838** | **Email** | **SUCCESS** | **Executive email delivery ✅** |
+| **2837** | **Executive** | **SUCCESS** | **4-step AI chain, cover letter, email delivered. 91 nodes, 195s** |
+| **2836** | **Email** | **SUCCESS** | **First successful email delivery — Mark Sent (status: "sent")** |
+| **2835** | **Standard** | **SUCCESS** | **CV PDF populated, cover letter, email delivered. 103 nodes, 148s** |
+| 2833 | Standard | PARTIAL | CV rewrite OK but PDF empty (Stash Context didn't carry cvRewriteText) |
+| 2831 | Standard | PARTIAL | Pipeline OK but Rewrite CV1 = 7 tokens (Responses API bug) |
+| 2830 | Standard | ERROR | Package empty after Build ctx fix (ctx string not parsed) |
+| 2829 | Standard | ERROR | Package empty at Switch → catch-all fallback |
+| **2827** | **Premium** | **SUCCESS** | **CV + Cover Letter + Email. 104 nodes, 167s** |
+
+---
+
+## Batch 15: Premium Pipeline E2E Testing & Cover Letter Document Fix [COMPLETE]
+
+**Session:** 2026-01-30
+**Status:** 11 operations applied (10 main + 1 email delivery), 7 test iterations
+
+### Root Cause
+Cover letter text was generated by Cover Letter Rewrite1 (Premium tier) but never turned into a document. The "Extra Cover Letter" addon path was the ONLY path that created a cover letter PDF — included cover letters were silently dropped. Data was lost at multiple points through the pipeline: Stash Context didn't carry `coverLetterText`, Normalize Payload couldn't find it, Google Docs pipeline stripped all context, and Reattach Context1 had no `joinKey` for Merge by Key.
+
+### Fixes Applied (11 nodes)
+| # | Node | ID | Fix |
+|---|------|----|-----|
+| 1 | Capture Rewrite1 | `dd8975e5` | Added `coverLetterText` extraction (OpenAI format) |
+| 2 | Capture Rewrite2 | `f05556f7` | Added `coverLetterText` extraction (Anthropic format) |
+| 3 | Capture Rewrite3 | `fb682146` | Added `coverLetterText` extraction (Anthropic format) |
+| 4 | Stash Context | `a2bbc558` | Added `coverLetterText` to ctx object |
+| 5 | Normalize Payload | `e9e01295` | Added `$node['Capture Rewrite1/2/3']` fallbacks for coverLetterText |
+| 6 | Write Cover Letter Content | `25c0ee39` | Try-catch around `$items('Cover Letter - Generate')` |
+| 7 | Capture Cover Letter | `eb5dcfaa` | Added orderId/docRow fallbacks for joinKey |
+| 8 | Upload CoverLetter1 | `09321213` | Added `$node['Capture Cover Letter']` for S3 key |
+| 9 | Reattach Context2 | `aebbdf44` | Added `$node['Capture Cover Letter']` for joinKey/orderId |
+| 10 | Reattach Context1 | `f4e185bd` | Added joinKey derivation for Merge by Key |
+| 11 | Reattach Email Meta (Email WF) | `85369918` | Pull binary by `$node` name instead of `$input` |
+
+### Known Issue — FIXED in Batch 16
+- ~~**Email Delivery "If Email Sent Ok"**: Routes to FALSE despite Gmail success~~ → FIXED (Batch 16, execution #2836)
+
+---
+
+## Batch 14c: Shape Documents Map Fix [COMPLETE]
+
+**Session:** 2026-01-29
+**Status:** 1 operation applied
+
+### Root Cause (from execution #2812)
+Shape Documents Map code only handled `$json.docs[]` array input, but:
+- **List Documents for Order** (Postgres) returns separate items with `{kind, storage_key}` — not an array
+- **No-addon orders** bypass List Documents entirely (Validate - Has Schema and OrderId fails because no `schema` field exists for non-addon paths), passing `docRow` object instead
+- **Supabase URL** used placeholder `<YOUR-PROJECT-REF>` instead of real URL
+
+### Fix Applied
+| Node | ID | Fix |
+|------|----|-----|
+| Shape Documents Map | `ae58cc77` | Rewrote to handle 4 input formats: (1) `$input.all()` multi-item with `{kind, storage_key}`, (2) `$json.docs[]` array, (3) `$json.docRow` with kind inference from storage_key, (4) flat key fields. Fixed Supabase URL to `xidmgkcqltvknvtuoeoh.supabase.co` |
+
+---
+
+## Batch 14b: Execution #2812 Post-Test Fixes [COMPLETE]
+
+**Session:** 2026-01-28
+**Status:** 3 operations applied
+
+### Root Cause Analysis (from execution #2812)
+Premium test after Batch 14 failed with `null subject` SQL error. Three issues:
+1. **Proofread CV** still 7 input tokens — OpenAI node v2.1 defaults `resource: "text"` which uses `responses` property, NOT `messages`. Batch 14's `messages.values` fix was ignored entirely.
+2. **Execute a SQL query** — `email_jobs.subject` is NOT NULL. Assemble Response doesn't produce `subject`/`body_html`. `NULLIF('','')` → NULL → constraint violation.
+3. **Frontend 524 timeout** — Cloudflare timeout between Vercel and n8n cloud (transient, not fixable in n8n).
+
+### Fixes Applied (3 operations)
+| # | Node | ID | Fix |
+|---|------|----|-----|
+| 1 | Starter - Proofread CV | `35bf08e4` | Set `resource: "text"`, `operation: "response"`, `responses.values` with system+user, `.first().json` |
+| 2 | Standard - Proofread CV | `df4bf557` | Same Responses API format fix |
+| 3 | Execute a SQL query | `31ce791b` | Added subject fallback (`'Your Premium CV Package is Ready'`), body_html construction, payload with all available fields |
+
+### Key Discovery: OpenAI Node v2.1 Dual Format
+- `messages` property → shown when `resource: "conversation"`, `operation: "create"` (Chat Completions API)
+- `responses` property → shown when `resource: "text"`, `operation: "response"` (Responses API, **DEFAULT**)
+- Default resource is `"text"`, so nodes without explicit resource setting use Responses API
+- `responses.values` requires: `type` (text/image/file), `role` (user/system/assistant), `content`
+
+---
+
+## Batch 14: Execution #2811 Analysis & Fixes [COMPLETE]
+
+**Session:** 2026-01-27
+**Status:** All 5 fixes applied and verified
+
+### Root Cause Analysis (from execution #2811)
+Premium test order succeeded (91 nodes executed) but pipeline was incomplete:
+1. **Proofread CV nodes** used single OpenAI message (7 input tokens = empty prompt). OpenAI node requires system + user message split.
+2. **cvRewriteText (final)** had `=={{` (double `=`) prepending literal `=` to output, plus an empty assignment.
+3. **Assemble Response** was a terminal node — no connection to Execute a SQL query → Trigger Email Workflow.
+4. **Assemble Response fields** referenced `$json.*` but input from SQL query only had DB columns, not context fields.
+
+### Fixes Applied (5 operations, atomic)
+| # | Node | ID | Fix |
+|---|------|----|-----|
+| 1 | Starter - Proofread CV | `35bf08e4` | Split to system msg (static) + user msg (dynamic with `=` prefix) |
+| 2 | Standard - Proofread CV | `df4bf557` | Split to system msg (static) + user msg (dynamic with `=` prefix) |
+| 3 | cvRewriteText (final) | `021894d0` | `=={{` → `={{`, removed empty `name:"",value:""` assignment |
+| 4 | Connection | — | Added: Assemble Response → Execute a SQL query |
+| 5 | Assemble Response | `f798ff3f` | Fixed `orderId ` trailing space, changed refs to `$('Context (carry)').first().json.*` and `$('Shape Documents Map').first().json.*` |
+
+### What Batch 13 Fixed (confirmed working in #2811 and #2812)
+- Cover Letter Rewrite1: ✅ 876 input tokens, real cover letter generated
+- Premium CV Rewrite: ✅ 715 input tokens, full professional CV
+- Capture Rewrite2 joinKey + ctx: ✅ All fields populated correctly
+- Assemble Response context fields: ✅ orderId, package, candidateName, email all populated (#2812)
+
+### Issue (Deferred): Frontend confirmation page slowness
+Webhook responds in ~10ms with 202. Confirmation page slowness is a frontend issue (Next.js on Vercel), not n8n. Deferred to separate investigation.
+
+---
+
+## Batch 13: AI Prompt & Capture Node Fixes [COMPLETE]
+
+**Session:** 2026-01-27
+**Status:** All 10 fixes applied and verified
+
+### Root Cause
+All Cover Letter Rewrite, Proofread CV, and Format CV Layout nodes had **static prompts** with no `=` prefix and no `{{ }}` expressions. AI received vague instructions but no CV text, job description, or candidate name. Capture Rewrite nodes used `$json.*` which couldn't find data from Anthropic/OpenAI output formats.
+
+### Fixes Applied (10 operations)
+| # | Node | Fix |
+|---|------|-----|
+| 1 | Cover Letter Rewrite1 (Premium) | Dynamic prompt: `=` prefix + `{{ }}` with Context (carry) + Premium CV Rewrite refs |
+| 2 | Cover Letter Rewrite (Standard) | Dynamic prompt with Context (carry) + Rewrite CV1 refs |
+| 3 | Cover Letter Rewrite2 (Executive) | Dynamic prompt with Context (carry) + Executive CV Rewrite refs |
+| 4 | Starter - Proofread CV | Dynamic prompt referencing Premium CV Rewrite (Anthropic format) |
+| 5 | Standard - Proofread CV | Dynamic prompt referencing Executive CV Rewrite (Anthropic format) |
+| 6 | Capture Rewrite1 | joinKey/cvRewriteText/ctx from upstream nodes, not $json |
+| 7 | Capture Rewrite2 | Multi-format extraction (Anthropic + OpenAI Responses API) |
+| 8 | Capture Rewrite3 | Multi-format extraction (Anthropic + OpenAI) |
+| 9 | Merge by Key | Added `onError: continueRegularOutput` |
+| 10 | Executive - Format CV Layout | Dynamic prompt referencing Standard - Proofread CV |
+
+---
+
+## Batch 12: Cover Letter Node Reconnection [COMPLETE]
+
+**Session:** 2026-01-27
+**Status:** All fixes applied and verified
+
+### Fix Applied
+Used `rewireConnection` to redirect CV Rewrite `main` outputs through Cover Letter Rewrite nodes.
+
+### Verified Flows (from live workflow data)
+| Tier | Flow | Cover Letter? |
+|------|------|---------------|
+| Starter | Rewrite CV → Capture Rewrite | ✅ No (correct) |
+| Standard | Rewrite CV1 → **Cover Letter Rewrite** → Capture Rewrite1 | ✅ YES |
+| Premium | Premium CV Rewrite → **Cover Letter Rewrite1** → Proofread → Capture Rewrite2 | ✅ YES |
+| Executive | Executive CV Rewrite → **Cover Letter Rewrite2** → Proofread → Format → Capture Rewrite3 | ✅ YES |
+
+### Node IDs (for reference)
+| Node | ID |
+|------|-----|
+| Rewrite CV1 | `3cbc6655-1120-4b7b-92ec-a57729ebe2b1` |
+| Premium - CV Rewrite (Claude Sonnet) | `aaf4fa34-eb8b-489f-a23e-c3f969957ecc` |
+| Executive - CV Rewrite (Claude Opus) | `2245d030-1b11-4588-aa11-91690c394642` |
+| Cover Letter Rewrite | `b6a6f5f5-f488-4c54-b399-6365b8a05496` |
+| Cover Letter Rewrite1 | `dde6a403-d7f1-41c9-9d5d-7addb8cd299b` |
+| Cover Letter Rewrite2 | `f115fc99-e1ea-452e-9ecc-ef09fdbee5d6` |
+| Capture Rewrite1 | `dd8975e5-6935-41d2-8254-cddb252ae5b9` |
+| Capture Rewrite2 | `f05556f7-e910-4f24-87d4-452b31ebb3d1` |
+| Capture Rewrite3 | `fb682146-be44-49b9-b491-90ae5eecd58d` |
+
+---
+
+## Batch 11: Supabase Storage & Data Flow Fixes [COMPLETE]
+
+**Session:** 2026-01-26
+**Status:** All fixes applied and verified
+
+### Issues Fixed
+
+**1. orderId Lost After Extract from File [FIXED]**
+- **Root Cause:** Extract from File nodes extract text but don't preserve ctx object
+- **Symptom:** `null value in column "order_id" of relation "documents" violates not-null constraint`
+- **Nodes Fixed:**
+  - **joinKey1** (ID: `5d66af5a-b825-429e-8223-e1841764767b`) - Now references `$('Stash Metadata').item.json.ctx`
+  - **Stash Context** (ID: `a2bbc558-8da5-440c-a7b3-035e3c7dd1c0`) - Now references `$('Context (carry)').item.json`
+
+**2. Supabase Storage Not Configured [FIXED]**
+- **Node ID:** `31a26c23-1239-428e-8b61-3990b2ae0893` (Set - Config)
+- **Problem:** Missing Supabase URL and service role key
+- **Fix:** Added credentials:
+  - `_cfg.supabaseUrl`: `xidmgkcqltvknvtuoeoh.supabase.co`
+  - `_cfg.supabaseKey`: Service role key (JWT)
+
+**3. HTTP Request _cfg Access [FIXED]**
+- **Node ID:** `154aace9-5adf-4929-8e59-0013e9e4a00b`
+- **Problem:** Node couldn't access `_cfg` because Collapse To One1 didn't pass it through
+- **Fix:** Updated to reference `$('Context (carry)').item.json._cfg` directly
+
+### Previously Fixed (Batch 10)
+
+**4. Build ctx Node Empty [FIXED]**
+- **Node ID:** `e88c0ab6-3eb3-4bf2-8057-90e14d845d60`
+- **Fix:** Added field mappings referencing `$('Webhook Intake')` directly
+
+**5. Idempotency Check Too Slow [FIXED]**
+- **Node ID:** `b7dad4ba-70b5-45fa-8f0f-14f6d82f66df`
+- **Fix:** DISABLED node (was taking 2.2s before Respond 202)
+
+**6. Binary Data Lost [FIXED]**
+- **Node ID:** `1ccdd0ad-4dec-4ebb-80fa-78053239995e` (Stash Metadata)
+- **Fix:** Converted to Code node that retrieves binary from Webhook Intake
+
+**7. Set - Config $env Access [FIXED]**
+- **Node ID:** `31a26c23-1239-428e-8b61-3990b2ae0893`
+- **Fix:** Replaced `$env.*` with hardcoded values
+
+**8. Duplicate Error Handler [FIXED]**
+- **Node ID:** `0d11e236-af2b-4175-9285-9963c4a43ee5`
+- **Fix:** DISABLED node
+
+---
+
+## Currently Disabled Nodes
+
+| Node | Node ID | Reason | Re-enable? |
+|------|---------|--------|------------|
+| Rate Limiter | `b0f341bb-668e-4fcc-9dfe-5b9825cd7918` | 2.2s delay before response | Move after Respond 202 |
+| Idempotency Check | `b7dad4ba-70b5-45fa-8f0f-14f6d82f66df` | 2.2s delay before response | Move after Respond 202 |
+| Error Handler | `0d11e236-af2b-4175-9285-9963c4a43ee5` | Duplicates separate workflow | Remove entirely |
 
 ---
 
@@ -74,291 +328,74 @@ Fixed Google Sheets P&L token cost tracking and enabled frontend addon pricing.
 
 ---
 
-## Batch 1: Main Workflow Optimization [COMPLETE]
+## Previous Batches [ALL COMPLETE]
 
-- [x] Remove AI Orchestrator layer
-- [x] Remove email redundancy
-- [x] Fix security node positioning
-- [x] Consolidate file processing
-- [x] Consolidate normalize nodes
-- [x] Simplify Google Docs flow
-- [x] Enhance tier-specific prompts
-- [x] Verify addon logic
-- [x] Create validation report
-- [x] Generate final workflow JSON
+### Batch 1-9 Summary
+All previous batches complete. See PLAN.md for details.
 
----
-
-## Batch 2: Workflow Validation & Error Fixes (COMPLETE)
-
-### Completed Tasks
-- [x] Validate live workflow via MCP connection
-- [x] Fix 15 IF nodes missing `onError: 'continueErrorOutput'`
-- [x] Identify and document 5 validator false positives
-- [x] Reduce warnings from 229 to 214
-- [x] Fix optional chaining `?.` warnings (17 nodes fixed)
-  - Strategy: Replace `$json.ctx?.field` with `($json.ctx || {}).field`
-  - Python script: `fix_chaining.py` for transformation logic
-  - Applied via MCP partial updates in two batches (9 Set nodes + 8 other nodes)
-  - HTTP Request2 required manual IIFE rewrite for complex expression
-- [x] Re-validate workflow after optional chaining fixes
-  - Warnings reduced from 189 to 154 (35 fewer warnings)
-  - All optional chaining syntax removed from expression nodes
-
----
-
-## Batch 3: Optional Improvements [COMPLETE]
-
-### TypeVersion Upgrades [COMPLETE]
-- [x] Upgrade IF nodes from 2.2 → 2.3 (13 nodes)
-- [x] Upgrade OpenAI nodes from 1.8 → 2.1 (6 nodes)
-- [x] Upgrade HTTP Request nodes from 4.2 → 4.3 (8 nodes)
-- [x] Upgrade RespondToWebhook nodes from 1.4 → 1.5 (6 nodes)
-- [x] Upgrade Switch nodes from 3.2 → 3.4 (2 nodes)
-- [x] Upgrade Extract from File nodes from 1 → 1.1 (2 nodes)
-
-### Error Handling [COMPLETE]
-- [x] Add `onError: continueRegularOutput` to OpenAI nodes (6 nodes)
-- [x] Add `onError: continueRegularOutput` to Anthropic nodes (6 nodes)
-- [x] Add `retryOnFail: true` to Database nodes (13 nodes)
-- [x] Add `onError: continueRegularOutput` to HTTP Request nodes (8 nodes)
-- [x] Add `onError: continueRegularOutput` to S3 nodes (4 nodes)
-- [x] Add `onError: continueRegularOutput` to Google Sheets/Drive (3 nodes)
-
-### Remaining Low-Priority Tasks
-- [ ] Convert expressions to resource locator format (50% confidence warnings)
-- [ ] Add outputKey to Switch rules (cosmetic)
-- [ ] Consider breaking workflow into sub-workflows
-
----
-
-## Batch 5: Database Security Audit [COMPLETE]
-
-**Session:** 2026-01-18 → 2026-01-19
-**Supabase Project:** `xidmgkcqltvknvtuoeoh`
-**Status:** All migrations executed, payment tracking active
-
-### Phase 1: Schema Discovery [COMPLETE]
-
-**Tables Found (5):**
-| Table | RLS Enabled | Columns | Purpose |
-|-------|-------------|---------|---------|
-| `orders` | ✅ Yes | 30 (was 19) | Main order records + payment tracking |
-| `documents` | ✅ Yes | 5 | Generated CV/cover letter storage keys |
-| `email_jobs` | ✅ Yes | 13 | Email delivery queue |
-| `order_addons` | ✅ Yes | 5 | Add-on purchases |
-| `customer_data` | ✅ Yes | 13 | Customer contact information |
-| `audit_log` | ✅ Yes | 12 | **NEW** - Audit trail for sensitive data |
-
-### Phase 2: Migrations Executed [COMPLETE]
-
-**New Columns in `orders` table (11):**
-- `stripe_payment_intent_id`, `stripe_charge_id`, `stripe_customer_id`
-- `payment_status`, `payment_amount_cents`, `payment_currency`, `payment_date`
-- `refund_id`, `refund_date`, `refund_reason`
-- `archived_at`
-
-**New Triggers (3):**
-- `audit_orders_trigger` - Logs INSERT/UPDATE/DELETE on orders
-- `audit_customer_data_trigger` - Logs INSERT/UPDATE/DELETE on customer_data
-- `protect_payment_records` - Prevents deletion of orders with payment data
-
-### Phase 3: Workflow Updates [COMPLETE]
-
-- [x] Data Retention workflow updated via MCP (preserves payment records)
-- [x] Main workflow updated via MCP (added payment capture nodes)
-
-### Verification Checklist
-
-- [x] All PII fields identified and documented
-- [x] RLS enabled on all tables
-- [x] Migration scripts created
-- [x] Migrations executed in Supabase
-- [x] 11 new columns verified in `orders` table
-- [x] 3 triggers verified active
-- [x] `audit_log` table created
-- [x] Data Retention workflow preserves payment records
-- [x] Main workflow captures payment fields
-
----
-
-## Batch 6: Stripe Payment Passthrough [COMPLETE]
-
-**Session:** 2026-01-19
-**Status:** Frontend + n8n updated, payment data flows end-to-end
-
-### Problem
-Payment identifiers (`payment_intent`, `customer_id`) were retrieved from Stripe but NOT passed to n8n workflow when user submitted CV.
-
-### Solution
-Implemented frontend passthrough:
-```
-Stripe → /api/intake/authorize → /intake page → /api/submit → n8n → orders table
-```
-
-### Completed Tasks
-- [x] `/api/intake/authorize/route.ts` - Extract payment fields from Stripe session
-- [x] `/app/intake/page.tsx` - Capture payment fields from URL, include in FormData
-- [x] `/api/submit/route.ts` - Forward payment fields to n8n webhook
-- [x] n8n "Capture Payment Fields" node - Extract from `$json.body.payment_intent`
-- [x] n8n "Update Payment Fields" node - Write to orders table
-- [x] Push frontend changes to GitHub
-
-### Payment Data Flow
-| Field | Source | Destination |
-|-------|--------|-------------|
-| `payment_intent` | Stripe session | `orders.stripe_payment_intent_id` |
-| `customer_id` | Stripe session | `orders.stripe_customer_id` |
-| `amount_total` | Stripe session | `orders.payment_amount_cents` |
-| `currency` | Stripe session | `orders.payment_currency` |
-
----
-
-## Batch 7: P&L Integration & Addon Pricing [COMPLETE]
-
-**Session:** 2026-01-20
-**Status:** Token cost tracking fixed, addon pricing enabled
-
-### Issues Found
-1. **Compute Token Cost node** referenced wrong node names for Premium/Executive tiers
-   - `'Message a model3'` → should be `'Premium - CV Rewrite (Claude Sonnet)'`
-   - `'Message a model11'` → should be `'Executive - CV Rewrite (Claude Opus)'`
-2. **Addon pricing** was commented out in frontend - users saw prices but weren't charged
-
-### Fixes Applied
-
-**n8n Workflow (via MCP):**
-- [x] Fixed `Compute Token Cost` STEPS array with correct node names:
-  - Starter: `'Rewrite CV'`, `'Starter - Proofread CV'`
-  - Standard: `'Rewrite CV1'`, `'Standard - Proofread CV'`
-  - Premium: `'Premium - CV Rewrite (Claude Sonnet)'`
-  - Executive: `'Executive - CV Rewrite (Claude Opus)'`, `'Executive - Format CV Layout'`
-  - Cover letters: `'Generate Cover Letter'`, `'Generate Cover Letter1'`, etc.
-  - LinkedIn: `'Generate LinkedIn Suggestions'`
-
-**Frontend (`/api/checkout/sessions/route.ts`):**
-- [x] Enabled addon prices:
-  - `extracoverletter`: €2.99 (299 cents)
-  - `oneday`: €3.99 (399 cents)
-  - `editableword`: €4.99 (499 cents)
-  - `linkedin`: €10.00 (1000 cents)
-- [x] Added `ADDON_NAMES` map for clean display names
-- [x] Added `formatAddonName()` helper function
-- [x] Updated `line_items` to include addon line items in Stripe checkout
-
-### Verification
-After next order with addons, verify:
-1. Google Sheets P&L shows non-zero `token_cost_usd` for Premium/Executive
-2. Stripe checkout total includes addon prices
-3. Customer sees itemized addons on Stripe checkout page
+Key achievements:
+- Workflow optimized (15 nodes removed)
+- Response time reduced from 2.3s+ to ~10ms
+- Payment tracking implemented
+- Binary data preservation fixed
+- Frontend fixes deployed
 
 ---
 
 ## Pre-Deployment Checklist (Main Workflow)
 
 ### Package Tier Tests
-- [ ] Starter - Upload PDF, verify GPT-4o-mini rewrite
-- [ ] Standard - Upload DOCX, verify GPT-4o-mini rewrite
-- [ ] Premium - Upload DOC, verify Claude Sonnet rewrite
-- [ ] Executive - Upload TXT, verify Claude Opus rewrite
+| Tier | Price | Includes | Test Status |
+|------|-------|----------|-------------|
+| Starter | €4.99 | CV rewrite only | [x] PASSED - execution #2842 (91 nodes, 148s) |
+| Standard | €7.99 | CV + Cover Letter | [x] PASSED - execution #2835 (103 nodes, 148s) |
+| Premium | €14.99 | CV + Cover Letter (Claude Sonnet) | [x] PASSED - execution #2827 (104 nodes, 167s) |
+| Executive | €24.99 | CV + Cover Letter + Layout + Priority | [x] PASSED - execution #2837 (91 nodes, 195s) |
+
+- [x] Starter - Upload TXT, verify GPT-4o-mini rewrite, NO cover letter (**PASSED** #2842)
+- [x] Standard - Upload TXT, verify GPT-4o-mini rewrite + cover letter + email (**PASSED** #2835)
+- [x] Premium - Upload TXT, verify Claude Sonnet rewrite + cover letter + email (**PASSED** #2827)
+- [x] Executive - Upload TXT, verify Claude Opus rewrite + cover letter + layout (**PASSED** #2837)
 - [ ] Invalid Tier - Send "deluxe", verify 400 error
 
-### Addon Tests
-- [ ] Extra Cover Letter - Verify PDF generated and uploaded
+### Addon Tests (EXTRA, on top of package)
+- [ ] Extra Cover Letter - Verify additional cover letter PDF generated
 - [ ] LinkedIn Optimization - Verify profile text generated
 - [ ] Editable Word - Verify HTML → DOCX conversion
-- [ ] One Day Delivery - Verify priority flag set
+- [~] One Day Delivery - Flag inconsistency found (string vs boolean)
 - [ ] All Addons Combined - Test with all 4 enabled
 - [ ] No Addons - Verify workflow completes
 
-### Security Tests
-- [ ] Rate Limiting - 11 requests in 60s, verify block
-- [ ] Duplicate Order - Same orderID twice, verify rejection
-- [ ] Malformed Payload - Invalid JSON, verify 400 error
-- [ ] Missing Fields - Omit required fields, verify error
-
 ### Integration Tests
-- [ ] Email Delivery - Verify trigger workflow works
-- [ ] Error Handling - Verify Error Handler calls Email Delivery
-- [ ] Database Records - Verify tables populated
-- [ ] S3 Uploads - Verify files uploaded correctly
+- [x] Email Delivery - Gmail sends with attachment, Mark Sent updates status to "sent" (verified #2836, false negative FIXED)
+- [x] Database Records - email_jobs id 68 created and marked "sent" (verified #2835/#2836)
+- [x] Supabase Uploads - Files uploaded correctly (verified #2809)
+- [x] S3 Upload - Cover letter PDF at `orders/{orderId}/cover_letter.pdf` (verified #2827)
 - [ ] Google Sheets - Verify row appended
 
 ---
 
 ## Notes
 
-### Validator False Positives (Ignore These)
-| Node | Error | Why It's OK |
-|------|-------|-------------|
-| Normalise & Validate | "Cannot return primitive" | Returns `[{json, binary}]` array |
-| Sanitize JD | "Cannot return primitive" | Returns `[{json, binary}]` array |
-| Guard Node1 | "Cannot return primitive" | Uses runOnceForEachItem mode |
-| Compute Token Cost | "Cannot return primitive" | Returns `items.map()` array |
-| CloudConvert | "Unknown node type" | Community node - works fine |
+### n8n Cloud Limitations
+- **$env.* access blocked** - Must use hardcoded values or credentials
+- **Execution limits** - Varies by plan, check for concurrent execution limits
+- **503 errors** - Usually temporary, retry after a few minutes
 
 ### Key Technical Details
-- **n8n expressions** don't support `?.` optional chaining - use `($json.x || {}).y` instead
-- **Code nodes** run in Node.js - they DO support `?.` optional chaining
-- **Workflow ID** may change if workflow is deleted/recreated - update PLAN.md and TODO.md
-- **MCP connection** required for remote workflow management
+- **Webhook response time:** ~10ms (after disabling slow nodes)
+- **Full order processing:** ~60 seconds
+- **Binary data:** Must be explicitly passed from Webhook Intake to downstream nodes
+- **Respond to Webhook nodes:** Do NOT pass binary data downstream
 
 ### Files Reference
 | File | Purpose |
 |------|---------|
 | `PLAN.md` | Project context, architecture, history |
 | `TODO.md` | This file - task tracking |
-| `fix_chaining.py` | Python script to fix `?.` in expressions |
-| `mcp_fix_operations.json` | MCP operations for optional chaining fixes |
 
 ---
 
-## Database Schema Reference (updated 2026-01-19)
-
-### orders (30 columns)
-```
--- Original (19)
-id, created_at, updated_at, status, package, addons, candidate_name, email,
-priority, source, ext_id, has_linkedin, has_extra_cover_letter,
-needs_editable_word, is_one_day_delivery, sla_due_at, stripe_session_id,
-completed_at, customer_email
-
--- Payment tracking (11 new)
-stripe_payment_intent_id, stripe_charge_id, stripe_customer_id,
-payment_status, payment_amount_cents, payment_currency, payment_date,
-refund_id, refund_date, refund_reason, archived_at
-```
-
-### customer_data (13 columns)
-```
-id, order_id, full_name, current_position, target_position, work_experience,
-skills, cv_file_url, phone, linkedin_url, created_at, updated_at, email
-```
-
-### email_jobs (13 columns)
-```
-id, created_at, order_id, recipient, subject, body_html, payload, status,
-attempts, last_error, updated_at, next_attempt_at, last_attempt_at
-```
-
-### documents (5 columns)
-```
-id, order_id, kind, storage_key, created_at
-```
-
-### order_addons (5 columns)
-```
-order_id, code, price_cents, selected, created_at
-```
-
-### audit_log (12 columns) - NEW
-```
-id, table_name, record_id, action, old_values, new_values, changed_fields,
-user_id, ip_address, user_agent, workflow_id, occurred_at
-```
-
----
-
-**Last Updated:** 2026-01-20
-**Status:** All 7 batches complete - Ready for production testing
-**Next Action:** Run end-to-end test with addons to verify P&L token cost and addon pricing
+**Last Updated:** 2026-02-01
+**Status:** Batch 16 COMPLETE — ALL 4 tiers PASSED (11 fixes across 2 workflows), Email Delivery FIXED
+**Next Action:** 524 Cloudflare timeout fix, addon testing
