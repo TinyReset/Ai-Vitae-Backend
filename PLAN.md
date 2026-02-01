@@ -25,7 +25,7 @@
 - **Standard pipeline:** PASSED (execution #2835 — 103 nodes, 148s, CV + Cover Letter + Email)
 - **Premium pipeline:** PASSED (execution #2827 — 104 nodes, 167s)
 - **Executive pipeline:** PASSED (execution #2837 — 91 nodes, 195s, CV + CL + Layout + Priority)
-- **Next:** 524 Cloudflare timeout fix, addon testing, frontend investigation
+- **Next:** Batch 17 — 524 Cloudflare timeout fix (plan approved, not yet implemented), then addon testing
 
 ### Repositories
 | Repo | URL | Purpose |
@@ -494,18 +494,88 @@ When starting a new Claude Code session:
 - **Frontend Status:** Fixed and deployed
 - **Supabase Storage:** Configured with credentials (`xidmgkcqltvknvtuoeoh.supabase.co`)
 
-### What's Next (Post Batch 16)
+### What's Next
 1. ~~TEST STANDARD ORDER~~ ✅ PASSED (execution #2835)
 2. ~~FIX EMAIL DELIVERY "If Email Sent Ok"~~ ✅ FIXED (execution #2836)
 3. ~~TEST EXECUTIVE ORDER~~ ✅ PASSED (execution #2837)
 4. ~~TEST STARTER ORDER~~ ✅ PASSED (execution #2842, required Capture Rewrite fix)
-5. **524 CLOUDFLARE TIMEOUT** - Workflow takes ~148-195s, Cloudflare times out at ~100s. Use "Respond to Webhook" node for async pattern.
+5. **BATCH 17: 524 CLOUDFLARE TIMEOUT FIX** — Plan approved, ready to implement. See details below.
 6. **ADDON TESTING** - Extra Cover Letter, LinkedIn Optimization, Editable Word, One Day Delivery
 7. **INVESTIGATE FRONTEND** - Confirmation page slowness (Next.js/Vercel, not n8n)
 8. **FUTURE: Re-enable Rate Limiter & Idempotency Check** - Move after Respond 202
 
 ---
 
+## Batch 17: 524 Cloudflare Timeout Fix (PLANNED — NOT YET IMPLEMENTED)
+
+### Problem
+- Workflow takes 148-195s; Cloudflare times out at ~100s → 524 error
+- Webhook has `responseMode: "responseNode"` and Respond 202 fires at ~95ms
+- BUT n8n Cloud's gateway holds the HTTP connection until execution completes (~148-195s)
+- The Respond 202 node executes successfully but the response never reaches the client
+
+### Root Cause
+n8n Cloud's reverse proxy/gateway does NOT honor the Respond to Webhook node mid-execution. It waits for the entire workflow execution to finish before releasing the HTTP connection. Cloudflare's 100s proxy timeout triggers a 524 before the workflow completes.
+
+### Approved Solution: Two-Workflow Split
+
+Create a lightweight **intake workflow** that validates, responds 202, then triggers the existing processing workflow via HTTP Request. The intake workflow completes in <1s — well before any timeout.
+
+```
+CLIENT → Intake Workflow (new, ~6 nodes, <1s)
+              ├─ Validate → Respond 202 (or 400 error)
+              └─ HTTP Request → Processing Workflow (existing, 148s, async)
+```
+
+#### Why not just `responseMode: "onReceived"`?
+- Loses ALL validation error responses (No CV, CV too Large, JD Required, etc.)
+- Client can't tell if submission was valid
+- Two-workflow approach preserves proper error handling
+
+### Step 1: Modify existing workflow (main workflow `40hfyY9Px6peWs3wWFkEY`)
+
+| Node | ID | Change |
+|------|----|--------|
+| Webhook Intake | `30dad1f6` | path → `/careeredge/process`, responseMode → `"onReceived"` |
+| Respond 202 | `42ef179a` | Disable (no longer needed) |
+| Ack Payload | `ffc0e75a` | Disable (no longer needed) |
+
+All other error-path Respond to Webhook nodes become no-ops with `onReceived` (harmless).
+
+### Step 2: Create new intake workflow (~6 nodes)
+
+| # | Name | Type | Purpose |
+|---|------|------|---------|
+| 1 | Webhook Intake | webhook | POST /careeredge/submit, responseMode: responseNode |
+| 2 | Build ctx | set | Extract orderId, package, email, payment fields from form data |
+| 3 | Validate | if | Check required fields exist (orderId, email, CV binary, JD) |
+| 4 | Respond 400 | respondToWebhook | Error response for failed validation |
+| 5 | Respond 202 | respondToWebhook | Success response with orderId |
+| 6 | Forward to Processing | httpRequest | POST to /webhook/careeredge/process with all data + binary |
+
+**Key: HTTP Request node** forwards the entire multipart payload (form fields + CV binary) to the processing workflow:
+```json
+{
+  "method": "POST",
+  "url": "https://applysmart.app.n8n.cloud/webhook/careeredge/process",
+  "contentType": "multipart-form-data",
+  "sendBinaryData": true,
+  "binaryPropertyName": "cv",
+  "bodyParameters": ["orderId", "email", "packageTier", "jobDescription", "candidateName", "addons", "payment fields"]
+}
+```
+
+### Step 3: Test
+1. Submit via curl → expect 202 in <1s (NOT 524)
+2. Verify processing workflow executes and completes
+3. Verify binary CV data flows through (text extraction, Google Docs, S3 upload)
+4. Verify email delivery
+5. Test validation errors (missing CV, missing JD) → expect 400
+
+### Step 4: Update PLAN.md and TODO.md
+
+---
+
 **Last Updated:** 2026-02-01
 **Session:** Batch 16 COMPLETE — ALL 4 tiers PASSED (11 fixes across 2 workflows), Email Delivery FIXED
-**Next Action:** 524 timeout fix, addon testing
+**Next Action:** Implement Batch 17 (524 Cloudflare timeout fix — plan approved, ready to build)

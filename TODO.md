@@ -16,7 +16,7 @@
 **Repositories:**
 - Backend: https://github.com/TinyReset/Ai-Vitae-Backend
 - Frontend: https://github.com/TinyReset/CVBuidler
-**Current Status:** Batch 16 COMPLETE - ALL 4 tiers PASSED, Email Delivery FIXED (11 fixes total)
+**Current Status:** Batch 16 COMPLETE, Batch 17 PLANNED (524 fix — ready to implement)
 **Nodes:** 145
 
 ### Current State
@@ -28,20 +28,20 @@
 - **CV PDF Document:** ✅ Rewritten CV text flows to Google Docs via Stash Context + $node reference (Batch 16)
 - **Cover Letter Document:** ✅ Included cover letters create PDF, upload to S3, merge into response (Batch 15)
 - **Email Delivery:** ✅ "If Email Sent Ok" fixed — routes to Mark Sent, status updated to "sent" (Batch 16)
-- **Premium Pipeline:** ✅ PASSED - execution #2827 (104 nodes, 167s)
-- **Standard Pipeline:** ✅ PASSED - execution #2835 (103 nodes, 148s, CV + CL + Email + Mark Sent)
-- **Executive Pipeline:** ✅ PASSED - execution #2837 (91 nodes, 195s, CV + CL + Layout + Priority + Email)
-- **Starter Pipeline:** ✅ PASSED - execution #2842 (91 nodes, 148s, CV only + Email)
+- **All 4 Tiers:** ✅ PASSED (Starter #2842, Standard #2835, Premium #2827, Executive #2837)
+- **524 Cloudflare Timeout:** Plan approved — two-workflow split (see PLAN.md Batch 17)
 
-### What's Next (Post Batch 16)
-1. ~~TEST STANDARD ORDER~~ ✅ PASSED (execution #2835, 5 iterations)
-2. ~~FIX EMAIL "If Email Sent Ok"~~ ✅ FIXED (execution #2836, first successful delivery)
-3. ~~TEST EXECUTIVE ORDER~~ ✅ PASSED (execution #2837, zero fixes needed)
-4. ~~TEST STARTER ORDER~~ ✅ PASSED (execution #2842, required Capture Rewrite Responses API fix)
-5. **524 CLOUDFLARE TIMEOUT** - Use "Respond to Webhook" node for async pattern
-6. **ADDON TESTING** - Extra Cover Letter, LinkedIn Optimization, Editable Word, One Day Delivery
-7. **FUTURE:** Re-enable Rate Limiter & Idempotency Check after Respond 202
-8. **FUTURE:** Investigate frontend confirmation page slowness (not n8n - webhook responds in ~10ms)
+### What's Next
+1. ~~TEST ALL 4 TIERS~~ ✅ ALL PASSED
+2. ~~FIX EMAIL DELIVERY~~ ✅ FIXED
+3. **BATCH 17: 524 CLOUDFLARE TIMEOUT FIX** — Plan approved, ready to implement
+   - Create new intake workflow (~6 nodes) at `/careeredge/submit`
+   - Modify existing workflow: webhook path → `/careeredge/process`, responseMode → `"onReceived"`
+   - Disable Respond 202 + Ack Payload in existing workflow
+   - Test: expect 202 in <1s (not 524)
+4. **ADDON TESTING** - Extra Cover Letter, LinkedIn Optimization, Editable Word, One Day Delivery
+5. **FUTURE:** Re-enable Rate Limiter & Idempotency Check after Respond 202
+6. **FUTURE:** Investigate frontend confirmation page slowness (not n8n - webhook responds in ~10ms)
 
 ### Key Commands
 ```
@@ -60,27 +60,30 @@ n8n_update_partial_workflow(id="40hfyY9Px6peWs3wWFkEY", operations=[...])
 
 ---
 
-## Last Session: 2026-02-01 (Session 9)
+## Last Session: 2026-02-01 (Session 10)
 
-### Session Summary (Batch 16 COMPLETE - ALL 4 Tiers PASSED)
-Continued cross-tier testing from Session 8. Executive tier passed on first test (#2837, zero fixes needed). Starter tier failed initially (#2839 — Capture Rewrite extracted cvRewriteText using old Chat Completions format, empty result). Fixed Capture Rewrite to use Responses API format. Re-test #2842 passed. All 4 tiers now verified end-to-end with email delivery.
+### Session Summary (524 Timeout Plan Designed)
+Designed the two-workflow split plan to fix the 524 Cloudflare timeout. Investigated the webhook response flow — confirmed that n8n Cloud's gateway holds the HTTP connection until execution completes, ignoring the Respond to Webhook node mid-execution. Evaluated three approaches (onReceived, two-workflow split, hybrid polling). Selected two-workflow split because it preserves all validation error responses. Plan approved, ready to implement in next session.
 
 **Completed This Session:**
-- [x] Executive tier tested and PASSED — execution #2837 (91 nodes, 195s, CV + CL + Layout + Priority + Email)
-- [x] Starter tier tested and PASSED — execution #2842 (91 nodes, 148s, CV only, no cover letter ✅, Email ✅)
-- [x] Fixed Capture Rewrite (Starter) — was using `$json.choices[0].message.content` (Chat Completions), updated to `$json.output[0].content[0].text` (Responses API)
-- [x] 11 total fixes this batch (8 main + 3 email delivery)
-- [x] Updated PLAN.md and TODO.md
-
-**Completed in Session 8 (2026-01-31):**
-- [x] Standard tier tested and PASSED — execution #2835 (103 nodes, 148s, CV + CL + Email)
-- [x] CV PDF populated with rewritten content (Stash Context + Write Content fixes)
-- [x] Email Delivery "If Email Sent Ok" fixed — execution #2836, Mark Sent status="sent"
+- [x] Investigated 524 root cause: n8n Cloud gateway holds connection until execution completes
+- [x] Designed two-workflow split architecture (intake + processing)
+- [x] Plan approved — see PLAN.md Batch 17 for full details
+- [x] Updated PLAN.md and TODO.md for next session
 
 **Still Pending:**
-- [ ] 524 Cloudflare timeout — use "Respond to Webhook" node for async pattern
+- [ ] **Batch 17: Implement 524 fix** — create intake workflow, modify existing workflow
 - [ ] Addon testing (Extra Cover Letter, LinkedIn, Editable Word, One Day Delivery)
 - [ ] Investigate frontend confirmation page slowness (not n8n — webhook responds in ~10ms)
+
+### Previous Session: 2026-02-01 (Session 9)
+
+**Batch 16 COMPLETE — ALL 4 Tiers PASSED:**
+- [x] Executive tier PASSED — execution #2837 (91 nodes, 195s, zero fixes needed)
+- [x] Starter tier PASSED — execution #2842 (91 nodes, 148s, required Capture Rewrite Responses API fix)
+- [x] Standard tier PASSED — execution #2835 (103 nodes, 148s, CV + CL + Email)
+- [x] Email Delivery "If Email Sent Ok" fixed — execution #2836, Mark Sent status="sent"
+- [x] 11 total fixes across Batch 16 (8 main + 3 email delivery)
 
 ### Latest Test Results
 | Execution | Tier | Status | Notes |
@@ -397,5 +400,5 @@ Key achievements:
 ---
 
 **Last Updated:** 2026-02-01
-**Status:** Batch 16 COMPLETE — ALL 4 tiers PASSED (11 fixes across 2 workflows), Email Delivery FIXED
-**Next Action:** 524 Cloudflare timeout fix, addon testing
+**Status:** Batch 16 COMPLETE, Batch 17 PLANNED (524 Cloudflare timeout fix — two-workflow split)
+**Next Action:** Implement Batch 17 (524 fix), then addon testing
